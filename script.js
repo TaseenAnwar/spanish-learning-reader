@@ -2,20 +2,42 @@
 const gradeSelect = document.getElementById('grade-level');
 const generateBtn = document.getElementById('generate-btn');
 const newStoryBtn = document.getElementById('new-story-btn');
+const audioBtn = document.getElementById('audio-btn');
 const generationSection = document.getElementById('generation-section');
 const storySection = document.getElementById('story-section');
 const storyContent = document.getElementById('story-content');
 const loading = document.getElementById('loading');
+const audioLoading = document.getElementById('audio-loading');
 const errorMessage = document.getElementById('error-message');
 const tooltip = document.getElementById('tooltip');
+const storyAudio = document.getElementById('story-audio');
 
 // State
 let currentStory = null;
 let translations = {};
+let audioUrl = null;
+let isPlaying = false;
 
 // Event Listeners
 generateBtn.addEventListener('click', generateStory);
 newStoryBtn.addEventListener('click', showGenerationSection);
+audioBtn.addEventListener('click', handleAudioClick);
+
+// Audio element event listeners
+storyAudio.addEventListener('ended', () => {
+    isPlaying = false;
+    updateAudioButton();
+});
+
+storyAudio.addEventListener('play', () => {
+    isPlaying = true;
+    updateAudioButton();
+});
+
+storyAudio.addEventListener('pause', () => {
+    isPlaying = false;
+    updateAudioButton();
+});
 
 // Generate Story Function
 async function generateStory() {
@@ -94,9 +116,93 @@ function displayStory(story) {
         storyContent.appendChild(p);
     });
     
+    // Reset audio state
+    audioUrl = null;
+    isPlaying = false;
+    storyAudio.pause();
+    storyAudio.src = '';
+    updateAudioButton();
+    
     // Show story section and hide generation section
     generationSection.classList.add('hidden');
     storySection.classList.remove('hidden');
+}
+
+// Handle Audio Button Click
+async function handleAudioClick() {
+    if (isPlaying) {
+        // Pause audio
+        storyAudio.pause();
+        isPlaying = false;
+        updateAudioButton();
+        return;
+    }
+    
+    if (audioUrl) {
+        // Play existing audio
+        storyAudio.play();
+        isPlaying = true;
+        updateAudioButton();
+        return;
+    }
+    
+    // Generate and play new audio
+    await generateAndPlayAudio();
+}
+
+// Generate and Play Audio
+async function generateAndPlayAudio() {
+    audioBtn.disabled = true;
+    audioLoading.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/api/text-to-speech', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text: currentStory })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate audio');
+        }
+        
+        const blob = await response.blob();
+        audioUrl = URL.createObjectURL(blob);
+        
+        storyAudio.src = audioUrl;
+        storyAudio.play();
+        isPlaying = true;
+        updateAudioButton();
+        
+    } catch (error) {
+        console.error('Error generating audio:', error);
+        showError('Sorry, there was an error generating the audio. Please try again.');
+    } finally {
+        audioBtn.disabled = false;
+        audioLoading.classList.add('hidden');
+    }
+}
+
+// Update Audio Button Appearance
+function updateAudioButton() {
+    const audioIcon = audioBtn.querySelector('.audio-icon');
+    const audioText = audioBtn.querySelector('.audio-text');
+    
+    if (isPlaying) {
+        audioIcon.textContent = '⏸️';
+        audioText.textContent = 'Pause Audio';
+        audioBtn.classList.add('playing');
+    } else if (audioUrl) {
+        audioIcon.textContent = '▶️';
+        audioText.textContent = 'Play Audio';
+        audioBtn.classList.remove('playing');
+    } else {
+        audioIcon.textContent = '🔊';
+        audioText.textContent = 'Listen to Story';
+        audioBtn.classList.remove('playing');
+    }
 }
 
 // Show Translation Function
@@ -159,6 +265,15 @@ function showGenerationSection() {
     generationSection.classList.remove('hidden');
     currentStory = null;
     translations = {};
+    audioUrl = null;
+    isPlaying = false;
+    
+    // Clean up audio
+    storyAudio.pause();
+    storyAudio.src = '';
+    if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+    }
 }
 
 // Show Error Function
