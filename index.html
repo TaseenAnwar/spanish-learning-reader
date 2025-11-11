@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spanish Learning Reader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Spanish Learning Reader</h1>
+            <p class="subtitle">Improve your Spanish reading skills with interactive stories</p>
+        </header>
+
+        <main>
+            <!-- Story Generation Section -->
+            <div id="generation-section" class="section">
+                <div class="form-container">
+                    <label for="grade-level">Pick Grade Level:</label>
+                    <select id="grade-level" class="grade-select">
+                        <option value="">Select a grade level...</option>
+                        <option value="K">Kindergarten</option>
+                        <option value="1">1st Grade</option>
+                        <option value="2">2nd Grade</option>
+                        <option value="3">3rd Grade</option>
+                        <option value="4">4th Grade</option>
+                        <option value="5">5th Grade</option>
+                        <option value="6">6th Grade</option>
+                        <option value="7">7th Grade</option>
+                        <option value="8">8th Grade</option>
+                        <option value="9">9th Grade</option>
+                        <option value="10">10th Grade</option>
+                        <option value="11">11th Grade</option>
+                        <option value="12">12th Grade</option>
+                    </select>
+
+                    <button id="generate-btn" class="btn btn-primary">Generate Spanish Story</button>
+                    
+                    <div id="loading" class="loading hidden">
+                        <div class="spinner"></div>
+                        <p>Generating your story...</p>
+                    </div>
+                    
+                    <div id="error-message" class="error-message hidden"></div>
+                </div>
+            </div>
+
+            <!-- Story Display Section -->
+            <div id="story-section" class="section hidden">
+                <div class="story-header">
+                    <h2>Your Spanish Story</h2>
+                    <button id="new-story-btn" class="btn btn-secondary">Generate New Story</button>
+                </div>
+                
+                <div id="story-content" class="story-content"></div>
+                
+                <div class="instructions">
+                    <p><strong>💡 Tip:</strong> Hover over any Spanish word to see its English translation!</p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2025 Spanish Learning Reader | Built for language learners</p>
+        </footer>
+    </div>
+
+    <!-- Translation Tooltip -->
+    <div id="tooltip" class="tooltip hidden"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
