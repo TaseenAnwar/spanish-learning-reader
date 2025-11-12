@@ -9,8 +9,33 @@
 <body>
     <div class="container">
         <header>
-            <h1>📚 Language Learning Reader</h1>
-            <p class="subtitle">Improve your language skills with interactive stories</p>
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>📚 Language Learning Reader</h1>
+                    <p class="subtitle">Improve your language skills with interactive stories</p>
+                </div>
+                <div class="header-auth">
+                    <div id="auth-loading" class="auth-loading hidden">Loading...</div>
+                    <div id="auth-buttons" class="auth-buttons hidden">
+                        <a href="/auth/google" class="btn btn-login">
+                            <span class="google-icon">G</span>
+                            Sign in with Google
+                        </a>
+                    </div>
+                    <div id="user-profile" class="user-profile hidden">
+                        <img id="user-avatar" class="user-avatar" src="" alt="User">
+                        <div class="user-info">
+                            <span id="user-name" class="user-name"></span>
+                            <span id="user-points" class="user-points">0 points</span>
+                        </div>
+                        <button id="logout-btn" class="btn btn-logout">Logout</button>
+                    </div>
+                </div>
+            </div>
+            <nav id="main-nav" class="main-nav hidden">
+                <button id="nav-home" class="nav-btn active">Home</button>
+                <button id="nav-account" class="nav-btn">My Account</button>
+            </nav>
         </header>
 
         <main>
@@ -66,6 +91,9 @@
                 <div class="story-header">
                     <h2>Your <span id="story-language">Language</span> Story</h2>
                     <div class="header-buttons">
+                        <button id="save-story-btn" class="btn btn-save hidden">
+                            <span>💾</span> Save Story
+                        </button>
                         <button id="audio-btn" class="btn btn-audio">
                             <span class="audio-icon">🔊</span>
                             <span class="audio-text">Listen to Story</span>
@@ -82,7 +110,7 @@
                 <div id="story-content" class="story-content"></div>
                 
                 <div class="instructions">
-                    <p><strong>💡 Tip:</strong> Hover over any word to see its English translation!</p>
+                    <p><strong>💡 Tip:</strong> Hover over any word to see its English translation<span id="save-word-tip" class="hidden"> and click the 💾 icon to save it!</span></p>
                 </div>
 
                 <!-- Quiz Button -->
@@ -118,12 +146,79 @@
                             <span id="score-text">0/3</span>
                         </div>
                         <p id="score-message"></p>
+                        <p id="points-earned" class="points-earned hidden"></p>
                     </div>
                     <div id="question-feedback"></div>
                     <div class="quiz-actions">
                         <button id="retake-quiz-btn" class="btn btn-secondary">Retake Quiz</button>
                         <button id="new-story-from-quiz-btn" class="btn btn-primary">Generate New Story</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Account Section -->
+            <div id="account-section" class="section hidden">
+                <h2>My Account</h2>
+                
+                <div class="account-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="account-points">0</span>
+                            <span class="stat-label">Total Points</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📚</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="saved-stories-count">0</span>
+                            <span class="stat-label">Saved Stories</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="vocab-count">0</span>
+                            <span class="stat-label">Vocabulary Words</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="account-section-header">
+                    <h3>📚 Saved Stories</h3>
+                </div>
+                <div id="saved-stories-container" class="saved-stories-container">
+                    <div class="loading-container hidden" id="stories-loading">
+                        <div class="spinner-small"></div>
+                        <p>Loading stories...</p>
+                    </div>
+                    <div id="saved-stories-list"></div>
+                    <p id="no-stories" class="empty-state hidden">You haven't saved any stories yet. Generate and save stories to see them here!</p>
+                </div>
+
+                <div class="account-section-header">
+                    <h3>📝 Vocabulary Bank</h3>
+                    <select id="vocab-filter" class="vocab-filter">
+                        <option value="">All Languages</option>
+                        <option value="spanish">Spanish</option>
+                        <option value="chinese">Chinese</option>
+                        <option value="hindi">Hindi</option>
+                        <option value="urdu">Urdu</option>
+                        <option value="french">French</option>
+                        <option value="arabic">Arabic</option>
+                        <option value="russian">Russian</option>
+                        <option value="german">German</option>
+                        <option value="japanese">Japanese</option>
+                        <option value="korean">Korean</option>
+                    </select>
+                </div>
+                <div id="vocabulary-container" class="vocabulary-container">
+                    <div class="loading-container hidden" id="vocab-loading">
+                        <div class="spinner-small"></div>
+                        <p>Loading vocabulary...</p>
+                    </div>
+                    <div id="vocabulary-table"></div>
+                    <p id="no-vocab" class="empty-state hidden">You haven't saved any vocabulary words yet. Hover over words in stories and click the save icon!</p>
                 </div>
             </div>
         </main>
@@ -133,8 +228,11 @@
         </footer>
     </div>
 
-    <!-- Translation Tooltip -->
-    <div id="tooltip" class="tooltip hidden"></div>
+    <!-- Translation Tooltip with Save Button -->
+    <div id="tooltip" class="tooltip hidden">
+        <span id="tooltip-text"></span>
+        <button id="tooltip-save" class="tooltip-save-btn hidden" title="Save word">💾</button>
+    </div>
 
     <!-- Hidden audio element -->
     <audio id="story-audio" style="display: none;"></audio>
