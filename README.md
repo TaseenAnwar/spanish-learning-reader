@@ -1,14 +1,38 @@
-# 📚 Spanish Learning Reader
+# 📚 Language Learning Reader
 
-An interactive web application that generates age-appropriate Spanish stories and provides instant English translations on hover. Perfect for K-12 students learning Spanish!
+An interactive web application that generates age-appropriate stories in **10 different languages** with instant English translations, authentic audio narration, and comprehension quizzes. Perfect for K-12 students learning a new language!
 
-## Features
+## ✨ Features
 
+### 🌍 **Multi-Language Support**
+Choose from 10 languages:
+- Spanish (Español)
+- Chinese (中文)
+- Hindi (हिन्दी)
+- Urdu (اردو)
+- French (Français)
+- Arabic (العربية)
+- Russian (Русский)
+- German (Deutsch)
+- Japanese (日本語)
+- Korean (한국어)
+
+### 📖 **Core Features**
 - **Grade-Level Appropriate Content**: Stories tailored for Kindergarten through 12th grade
-- **Interactive Translation**: Hover over any Spanish word to see its English translation
+- **Interactive Translation**: Hover over any word to see its English translation
+- **🔊 Audio Narration**: Listen to stories read aloud in authentic native accent
+- **📝 Quiz Yourself**: Test comprehension with 3 questions after each story
 - **AI-Powered Stories**: Each story is uniquely generated using GPT-4o-mini
 - **Beautiful UI**: Clean, modern, and responsive design
-- **Easy to Use**: Simple interface suitable for students of all ages
+
+## 🆕 What's New in Version 2.0
+
+- ✅ **10 languages** instead of just Spanish
+- ✅ **Quiz feature** with 3 comprehension questions per story
+- ✅ **Instant grading** with detailed feedback
+- ✅ **Score display** showing correct/incorrect answers
+- ✅ Authentic TTS voices for each language
+- ✅ Enhanced UI with quiz styling
 
 ## Prerequisites
 
@@ -21,7 +45,7 @@ An interactive web application that generates age-appropriate Spanish stories an
 1. **Clone the repository**
    ```bash
    git clone <your-repository-url>
-   cd spanish-learning-reader
+   cd language-learning-reader
    ```
 
 2. **Install dependencies**
@@ -31,25 +55,15 @@ An interactive web application that generates age-appropriate Spanish stories an
 
 3. **Configure environment variables**
    
-   Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   
    Edit `.env` and add your OpenAI API key:
    ```
    OPENAI_API_KEY=your_actual_api_key_here
    PORT=3000
    ```
 
-4. **Start the development server**
+4. **Start the server**
    ```bash
    npm start
-   ```
-   
-   Or for development with auto-reload:
-   ```bash
-   npm run dev
    ```
 
 5. **Open your browser**
@@ -59,153 +73,216 @@ An interactive web application that generates age-appropriate Spanish stories an
 ## Project Structure
 
 ```
-spanish-learning-reader/
-├── index.html          # Main HTML file
-├── style.css           # Stylesheet with responsive design
-├── script.js           # Client-side JavaScript
-├── server.js           # Express server with OpenAI integration
-├── package.json        # Node.js dependencies and scripts
+language-learning-reader/
+├── index.html          # Main HTML with language selector and quiz UI
+├── style.css           # Stylesheet with quiz styling
+├── script.js           # Client-side JS with quiz functionality
+├── server.js           # Express server with multi-language + quiz endpoints
+├── package.json        # Dependencies
 ├── .env                # Environment variables (not in git)
-├── .env.example        # Environment variables template
 ├── .gitignore          # Git ignore rules
 └── README.md           # This file
 ```
 
-## Deployment to Render.com
-
-### Step 1: Prepare Your Repository
-
-1. Make sure all files are committed to your Git repository
-2. Push your code to GitHub, GitLab, or Bitbucket
-3. **Important**: Do NOT commit your `.env` file with your actual API key
-
-### Step 2: Create a Render Account
-
-1. Go to [Render.com](https://render.com)
-2. Sign up for a free account
-3. Connect your GitHub/GitLab/Bitbucket account
-
-### Step 3: Create a New Web Service
-
-1. Click "New +" and select "Web Service"
-2. Connect your repository
-3. Configure the service:
-   - **Name**: `spanish-learning-reader` (or your preferred name)
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Plan**: Choose "Free" for testing
-
-### Step 4: Set Environment Variables
-
-1. In the Render dashboard, go to your service
-2. Navigate to "Environment" section
-3. Add your environment variables:
-   - Key: `OPENAI_API_KEY`
-   - Value: Your actual OpenAI API key
-4. Save changes
-
-### Step 5: Deploy
-
-1. Click "Create Web Service"
-2. Render will automatically deploy your application
-3. Once deployed, you'll receive a URL like: `https://spanish-learning-reader.onrender.com`
-
-### Important Notes for Render Deployment
-
-- The free tier may spin down after 15 minutes of inactivity
-- First request after inactivity may take 30-60 seconds to wake up
-- For production use, consider upgrading to a paid plan
-- Monitor your OpenAI API usage to avoid unexpected charges
-
 ## Usage
 
-1. **Select a Grade Level**: Choose from Kindergarten through 12th grade
-2. **Generate Story**: Click the "Generate Spanish Story" button
-3. **Read and Learn**: Hover over any Spanish word to see its English translation
-4. **Generate New Story**: Click "Generate New Story" to create another story
+1. **Select a Language**: Choose from 10 supported languages
+2. **Select a Grade Level**: Choose from Kindergarten through 12th grade
+3. **Generate Story**: Click "Generate Story" button
+4. **Read and Learn**: Hover over any word to see its English translation
+5. **🔊 Listen**: Click "Listen to Story" to hear authentic pronunciation
+6. **📝 Quiz Yourself**: Click "Quiz Yourself" to test comprehension
+   - Answer 3 questions about the story
+   - Get instant feedback on your answers
+   - See your score and detailed explanations
+7. **Try Again**: Generate new stories or retake quizzes
+
+## API Endpoints
+
+### Story Generation
+- **POST** `/api/generate-story`
+- Body: `{ language: 'spanish', gradeLevel: '3' }`
+- Returns: Story text + word translations
+
+### Text-to-Speech
+- **POST** `/api/text-to-speech`
+- Body: `{ text: 'story text', language: 'spanish' }`
+- Returns: MP3 audio file
+
+### Quiz Generation
+- **POST** `/api/generate-quiz`
+- Body: `{ story: 'story text', language: 'spanish' }`
+- Returns: 3 questions (2 true/false, 1 short answer)
+
+### Quiz Grading
+- **POST** `/api/grade-quiz`
+- Body: `{ questions: [...], answers: [...] }`
+- Returns: Score + detailed feedback
+
+### Word Translation
+- **POST** `/api/translate`
+- Body: `{ word: 'palabra', language: 'spanish' }`
+- Returns: English translation
 
 ## API Usage and Costs
 
-This application uses the OpenAI API (GPT-4o-mini model). Each story generation and translation will incur API costs. Monitor your usage at [OpenAI Platform](https://platform.openai.com/usage).
+Monitor your usage at [OpenAI Platform](https://platform.openai.com/usage).
 
-Estimated costs (as of 2024):
-- Story generation: ~$0.001-0.003 per story
-- Translations: ~$0.0001 per word
+### Estimated costs per story (as of 2024):
+- **Story generation**: ~$0.001-0.003
+- **Translations**: ~$0.0001 per word
+- **Audio narration**: ~$0.015 per story
+- **Quiz generation**: ~$0.001
+- **Quiz grading**: ~$0.001
+- **Total per complete session**: ~$0.018-0.022
+
+Still less than 3 cents per complete learning session with story + audio + quiz!
+
+## Language-Specific TTS Voices
+
+Each language uses an optimized OpenAI voice:
+- **Spanish**: nova
+- **Chinese**: alloy
+- **Hindi**: alloy
+- **Urdu**: onyx
+- **French**: nova
+- **Arabic**: onyx
+- **Russian**: alloy
+- **German**: nova
+- **Japanese**: alloy
+- **Korean**: nova
+
+## Deployment to Render.com
+
+Same process as before:
+
+1. Push code to GitHub
+2. Connect repository to Render
+3. Add `OPENAI_API_KEY` environment variable
+4. Deploy!
+
+Your app will be live at: `https://your-app-name.onrender.com`
 
 ## Customization
 
-### Adjusting Story Length
+### Adding More Languages
 
-Edit `gradeConfigs` in `server.js`:
-
-```javascript
-const gradeConfigs = {
-    'K': { complexity: 'very simple', wordCount: '50-75', vocabulary: 'basic animals, colors' },
-    // ... modify as needed
-};
-```
-
-### Changing AI Model
-
-In `server.js`, modify the model parameter:
+Edit `languageConfig` in `server.js`:
 
 ```javascript
-model: 'gpt-4o-mini', // or 'gpt-4o' for higher quality
+newlanguage: {
+    name: 'Language Name',
+    nativeName: 'Native Script',
+    code: 'ISO code',
+    voice: 'nova' // or alloy, echo, etc.
+}
 ```
 
-### Styling
+Then add to the dropdown in `index.html`.
 
-Customize colors and design in `style.css`.
+### Adjusting Quiz Difficulty
+
+Edit the quiz generation prompt in `server.js` to:
+- Change number of questions
+- Adjust question types
+- Modify difficulty level
+
+### Changing Voices
+
+Modify the `voice` field in `languageConfig` in `server.js`. Available voices:
+- `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`
+
+## Browser Compatibility
+
+- ✅ Chrome/Edge (recommended)
+- ✅ Firefox
+- ✅ Safari
+- ✅ Mobile browsers
 
 ## Troubleshooting
 
-### Server Won't Start
-
-- Check that Node.js is installed: `node --version`
-- Verify all dependencies are installed: `npm install`
-- Ensure `.env` file exists with valid API key
-
 ### Stories Not Generating
+- Verify OpenAI API key is correct
+- Check API credits
+- Look at server console for errors
 
-- Verify your OpenAI API key is correct
-- Check your API key has available credits
-- Look at server console for error messages
+### Audio Not Playing
+- Check browser console
+- Ensure TTS access on API key
+- Try different browser
+
+### Quiz Not Loading
+- Check that story was generated successfully
+- Look at network tab in browser dev tools
+- Verify server is running
 
 ### Translations Not Showing
-
 - Clear browser cache
-- Check browser console for JavaScript errors
-- Verify server is running properly
+- Check that language is supported
+- Verify API key has sufficient credits
 
-## Security Notes
+## Future Enhancements (Roadmap)
 
-- **Never commit your `.env` file** to version control
-- Keep your OpenAI API key private
-- Consider implementing rate limiting for production use
-- Monitor API usage regularly
+- [ ] User authentication (Google Sign-In)
+- [ ] Points system for quizzes
+- [ ] Save favorite stories
+- [ ] Vocabulary word bank
+- [ ] User profile page
+- [ ] Progress tracking
+- [ ] Leaderboards
+- [ ] More languages
 
 ## Contributing
 
-Feel free to submit issues and enhancement requests!
+Contributions are welcome! Feel free to submit issues and pull requests.
 
 ## License
 
-MIT License - feel free to use this project for educational purposes.
+MIT License - free for educational use
 
 ## Support
 
-For issues with:
-- **OpenAI API**: Visit [OpenAI Help Center](https://help.openai.com)
-- **Render Deployment**: Visit [Render Docs](https://render.com/docs)
+For issues:
+- **OpenAI API**: [OpenAI Help Center](https://help.openai.com)
+- **Render Deployment**: [Render Docs](https://render.com/docs)
 - **This Project**: Open an issue in the repository
 
 ## Acknowledgments
 
 - Built with [OpenAI GPT-4o-mini](https://openai.com)
+- Audio powered by [OpenAI TTS](https://platform.openai.com/docs/guides/text-to-speech)
 - Deployed on [Render](https://render.com)
-- Created for Spanish language learners
+- Created for language learners worldwide
+
+## Changelog
+
+### Version 2.0 (Current)
+- ✨ Added 9 more languages (10 total)
+- 📝 Added quiz feature with 3 questions per story
+- 🎯 Added instant quiz grading with feedback
+- 💯 Added score display with detailed results
+- 🎨 Enhanced UI for quiz interface
+- 🔧 Improved translation system for multiple languages
+
+### Version 1.1
+- ✨ Added authentic audio narration
+- 🔊 Play/pause controls
+- 💾 Audio caching
+
+### Version 1.0
+- Initial release
+- Spanish story generation
+- Interactive translations
+- Grade-level content
 
 ---
 
-Happy Learning! 🎉📖🇪🇸
+Happy Learning! 🎉📖🌍🔊📝
+
+## Screenshots
+
+[Add screenshots of your app here once deployed]
+
+---
+
+Made with ❤️ for language learners everywhere
