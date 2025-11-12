@@ -1,7 +1,14 @@
 const express = require('express');
 const path = require('path');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const OpenAI = require('openai');
 require('dotenv').config();
+
+const { sequelize, User, SavedStory, Vocabulary, QuizScore, syncDatabase } = require('./models');
+const { isAuthenticated, optionalAuth } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,6 +21,78 @@ const openai = new OpenAI({
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
+
+// Session configuration
+const sessionStore = new SequelizeStore({
+    db: sequelize,
+    checkExpirationInterval: 15 * 60 * 1000, // Clean up expired sessions every 15 minutes
+    expiration: 7 * 24 * 60 * 60 * 1000 // 7 days
+});
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport Google OAuth Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: '/auth/google/callback'
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        // Find or create user
+        let user = await User.findOne({ where: { googleId: profile.id } });
+        
+        if (!user) {
+            // Create new user
+            user = await User.create({
+                googleId: profile.id,
+                email: profile.emails[0].value,
+                name: profile.displayName,
+                profilePicture: profile.photos[0]?.value,
+                lastLogin: new Date()
+            });
+        } else {
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+        }
+        
+        return done(null, user);
+    } catch (error) {
+        return done(error, null);
+    }
+}));
+
+// Serialize user for session
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+// Deserialize user from session
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findByPk(id);
+        done(null, user);
+    } catch (error) {
+        done(error, null);
+    }
+});
+
+// Sync database and create session table
+syncDatabase();
+sessionStore.sync();
 
 // Language configurations
 const languageConfig = {
@@ -95,6 +174,270 @@ const gradeConfigs = {
     '11': { complexity: 'advanced', wordCount: '550-600', vocabulary: 'complex grammar and nuanced vocabulary' },
     '12': { complexity: 'very advanced', wordCount: '600-700', vocabulary: 'near-native vocabulary and complex structures' }
 };
+
+// ==================== AUTHENTICATION ROUTES ====================
+
+// Check authentication status
+app.get('/api/auth/status', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json({
+            authenticated: true,
+            user: {
+                id: req.user.id,
+                name: req.user.name,
+                email: req.user.email,
+                profilePicture: req.user.profilePicture,
+                totalPoints: req.user.totalPoints
+            }
+        });
+    } else {
+        res.json({ authenticated: false });
+    }
+});
+
+// Google OAuth routes
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/' }),
+    (req, res) => {
+        res.redirect('/');
+    }
+);
+
+// Logout route
+app.get('/auth/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Logout failed' });
+        }
+        res.redirect('/');
+    });
+});
+
+// ==================== USER ENDPOINTS ====================
+
+// Get user profile
+app.get('/api/user/profile', isAuthenticated, async (req, res) => {
+    try {
+        res.json({
+            id: req.user.id,
+            name: req.user.name,
+            email: req.user.email,
+            profilePicture: req.user.profilePicture,
+            totalPoints: req.user.totalPoints,
+            createdAt: req.user.createdAt
+        });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ error: 'Failed to fetch user profile' });
+    }
+});
+
+// Save story
+app.post('/api/user/save-story', isAuthenticated, async (req, res) => {
+    try {
+        const { storyText, language, gradeLevel } = req.body;
+        
+        if (!storyText || !language || !gradeLevel) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Create title from first 50 characters
+        const title = storyText.substring(0, 50).trim() + '...';
+        
+        const savedStory = await SavedStory.create({
+            userId: req.user.id,
+            storyText,
+            language,
+            gradeLevel,
+            title
+        });
+        
+        res.json({
+            success: true,
+            story: {
+                id: savedStory.id,
+                title: savedStory.title,
+                language: savedStory.language,
+                gradeLevel: savedStory.gradeLevel,
+                savedAt: savedStory.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Error saving story:', error);
+        res.status(500).json({ error: 'Failed to save story' });
+    }
+});
+
+// Get saved stories
+app.get('/api/user/saved-stories', isAuthenticated, async (req, res) => {
+    try {
+        const stories = await SavedStory.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']],
+            attributes: ['id', 'title', 'storyText', 'language', 'gradeLevel', 'createdAt']
+        });
+        
+        res.json({ stories });
+    } catch (error) {
+        console.error('Error fetching saved stories:', error);
+        res.status(500).json({ error: 'Failed to fetch saved stories' });
+    }
+});
+
+// Delete saved story
+app.delete('/api/user/saved-stories/:id', isAuthenticated, async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        
+        const story = await SavedStory.findOne({
+            where: { id: storyId, userId: req.user.id }
+        });
+        
+        if (!story) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+        
+        await story.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting story:', error);
+        res.status(500).json({ error: 'Failed to delete story' });
+    }
+});
+
+// Save vocabulary word
+app.post('/api/user/save-word', isAuthenticated, async (req, res) => {
+    try {
+        const { word, translation, language, context } = req.body;
+        
+        if (!word || !translation || !language) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Check if word already exists for this user
+        const existingWord = await Vocabulary.findOne({
+            where: {
+                userId: req.user.id,
+                word: word.toLowerCase(),
+                language
+            }
+        });
+        
+        if (existingWord) {
+            return res.json({
+                success: true,
+                message: 'Word already saved',
+                word: existingWord
+            });
+        }
+        
+        const savedWord = await Vocabulary.create({
+            userId: req.user.id,
+            word: word.toLowerCase(),
+            translation,
+            language,
+            context: context || null
+        });
+        
+        res.json({
+            success: true,
+            word: {
+                id: savedWord.id,
+                word: savedWord.word,
+                translation: savedWord.translation,
+                language: savedWord.language,
+                savedAt: savedWord.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Error saving word:', error);
+        res.status(500).json({ error: 'Failed to save word' });
+    }
+});
+
+// Get vocabulary
+app.get('/api/user/vocabulary', isAuthenticated, async (req, res) => {
+    try {
+        const { language } = req.query;
+        
+        const whereClause = { userId: req.user.id };
+        if (language) {
+            whereClause.language = language;
+        }
+        
+        const vocabulary = await Vocabulary.findAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC']],
+            attributes: ['id', 'word', 'translation', 'language', 'context', 'createdAt']
+        });
+        
+        res.json({ vocabulary });
+    } catch (error) {
+        console.error('Error fetching vocabulary:', error);
+        res.status(500).json({ error: 'Failed to fetch vocabulary' });
+    }
+});
+
+// Delete vocabulary word
+app.delete('/api/user/vocabulary/:id', isAuthenticated, async (req, res) => {
+    try {
+        const wordId = req.params.id;
+        
+        const word = await Vocabulary.findOne({
+            where: { id: wordId, userId: req.user.id }
+        });
+        
+        if (!word) {
+            return res.status(404).json({ error: 'Word not found' });
+        }
+        
+        await word.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting word:', error);
+        res.status(500).json({ error: 'Failed to delete word' });
+    }
+});
+
+// Add points (called after quiz completion)
+app.post('/api/user/add-points', isAuthenticated, async (req, res) => {
+    try {
+        const { points, score, totalQuestions, language, gradeLevel } = req.body;
+        
+        if (points === undefined) {
+            return res.status(400).json({ error: 'Points required' });
+        }
+        
+        // Update user points
+        req.user.totalPoints += points;
+        await req.user.save();
+        
+        // Save quiz score
+        if (score !== undefined && totalQuestions) {
+            await QuizScore.create({
+                userId: req.user.id,
+                score,
+                totalQuestions,
+                language,
+                gradeLevel
+            });
+        }
+        
+        res.json({
+            success: true,
+            totalPoints: req.user.totalPoints
+        });
+    } catch (error) {
+        console.error('Error adding points:', error);
+        res.status(500).json({ error: 'Failed to add points' });
+    }
+});
+
+// ==================== EXISTING STORY/QUIZ ENDPOINTS ====================
 
 // Generate Story Endpoint
 app.post('/api/generate-story', async (req, res) => {
@@ -280,7 +623,7 @@ DO NOT include any text outside the JSON object. Make questions clear and unambi
 // Grade Quiz Endpoint
 app.post('/api/grade-quiz', async (req, res) => {
     try {
-        const { questions, answers } = req.body;
+        const { questions, answers, language, gradeLevel } = req.body;
         
         if (!questions || !answers || questions.length !== answers.length) {
             return res.status(400).json({ error: 'Invalid quiz data' });
@@ -351,10 +694,26 @@ Return ONLY a JSON object in this format:
             });
         }
         
+        // If user is authenticated, add points
+        if (req.isAuthenticated()) {
+            req.user.totalPoints += score;
+            await req.user.save();
+            
+            // Save quiz score
+            await QuizScore.create({
+                userId: req.user.id,
+                score,
+                totalQuestions: questions.length,
+                language: language || 'unknown',
+                gradeLevel: gradeLevel || 'unknown'
+            });
+        }
+        
         res.json({
             score: score,
             total: questions.length,
-            results: results
+            results: results,
+            totalPoints: req.isAuthenticated() ? req.user.totalPoints : null
         });
         
     } catch (error) {
